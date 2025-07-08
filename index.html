@@ -3,24 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RosieTrack - New Design Preview</title>
-    
-    <!-- Tailwind CSS -->
+    <title>🌸 RosieTrack - ระบบติดตามสุขภาพสำหรับผู้หญิง</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Google Fonts (Poppins) -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Mitr:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/date-fns"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 
     <style>
         body {
-            font-family: 'Poppins', 'Mitr', sans-serif;
-            background-color: #fdf2f8; /* Light pink background */
+            font-family: 'Prompt', sans-serif;
+            background-color: #fff5f7;
+            color: #4a5568;
+        }
+        .app-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #fff;
+            min-height: 100vh;
         }
         .container {
-            max-width: 480px;
-            margin: 0 auto;
             padding: 20px;
         }
         .card {
@@ -63,260 +66,673 @@
             border: 1px solid #e2e8f0;
             border-radius: 8px;
             margin-bottom: 15px;
-            transition: all 0.3s ease;
         }
-        .input-field:focus {
-            border-color: #ff8fab;
-            box-shadow: 0 0 0 3px rgba(255, 143, 171, 0.2);
-            outline: none;
-        }
-        .tab-active {
+        .main-tab.tab-active {
             color: #ff8fab;
             border-bottom: 3px solid #ff8fab;
             font-weight: 600;
         }
-        .tab-inactive {
+        .main-tab.tab-inactive {
             color: #a0aec0;
             border-bottom: 3px solid transparent;
+        }
+        .progress-bar {
+            height: 10px;
+            background-color: #edf2f7;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background-color: #ff8fab;
+            border-radius: 5px;
+            transition: width 0.5s ease;
+        }
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        .modal.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal-content {
+            background-color: white;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 20px;
+            transform: translateY(-20px);
+            transition: all 0.3s ease;
+        }
+        .modal.show .modal-content {
+            transform: translateY(0);
+        }
+        .tab-content {
+            animation: fadeIn 0.5s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .profile-pic-container {
+            position: relative;
+            cursor: pointer;
+        }
+        .profile-pic-container .overlay {
+            position: absolute;
+            inset: 0;
+            background-color: rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            border-radius: 50%;
+        }
+        .profile-pic-container:hover .overlay {
+            opacity: 1;
+        }
+        .spinner {
+            border: 3px solid rgba(255, 143, 171, 0.2);
+            border-radius: 50%;
+            border-top-color: #ff8fab;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="text-center my-8">
-            <h1 class="text-4xl font-bold text-pink-500">🌸 RosieTrack</h1>
-            <p class="text-gray-500 mt-2">Blossom into Your Best Self</p>
+    <div id="app-wrapper">
+        <!-- Auth Screen (Copied from previous working version) -->
+        <div id="auth-screen">
+             <div class="login-page flex-grow flex flex-col justify-center items-center p-4 min-h-screen">
+                <div class="text-center mb-8 login-title">
+                    <h1 class="text-5xl font-bold text-white" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.2);">🌸 RosieTrack</h1>
+                    <p class="text-white/80 mt-2">Blossom into Your Best Self</p>
+                </div>
+                
+                <div class="bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg p-8 w-full max-w-sm">
+                    <div class="flex mb-6">
+                        <button id="login-tab-btn" class="auth-tab w-1/2 py-2 text-center font-medium tab-active">เข้าสู่ระบบ</button>
+                        <button id="register-tab-btn" class="auth-tab w-1/2 py-2 text-center font-medium tab-inactive">สมัครสมาชิก</button>
+                    </div>
+
+                    <div id="auth-message" class="w-full mb-4 text-sm h-10 text-center font-semibold"></div>
+                    
+                    <div id="login-form" class="block">
+                        <div class="mb-4"><label class="block text-gray-600 mb-2 text-sm">อีเมล</label><input type="email" id="login-email" class="input-field" placeholder="your@email.com"></div>
+                        <div class="mb-6"><label class="block text-gray-600 mb-2 text-sm">รหัสผ่าน</label><input type="password" id="login-password" class="input-field" placeholder="••••••••"></div>
+                        <button id="login-btn" class="btn-primary"><span class="btn-text">เข้าสู่ระบบ</span></button>
+                    </div>
+                    
+                    <div id="register-form" class="hidden">
+                        <div class="mb-4"><label class="block text-gray-600 mb-2 text-sm">ชื่อ</label><input type="text" id="register-name" class="input-field" placeholder="ชื่อของคุณ"></div>
+                        <div class="mb-4"><label class="block text-gray-600 mb-2 text-sm">อีเมล</label><input type="email" id="register-email" class="input-field" placeholder="your@email.com"></div>
+                        <div class="mb-6"><label class="block text-gray-600 mb-2 text-sm">รหัสผ่าน</label><input type="password" id="register-password" class="input-field" placeholder="อย่างน้อย 6 ตัวอักษร"></div>
+                        <button id="register-btn" class="btn-primary"><span class="btn-text">สมัครสมาชิก</span></button>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <!-- Login/Register Card -->
-        <div class="card">
-            <div class="flex mb-6">
-                <button id="login-tab" class="w-1/2 py-2 text-center font-medium tab-active" onclick="switchAuthTab('login')">เข้าสู่ระบบ</button>
-                <button id="register-tab" class="w-1/2 py-2 text-center font-medium tab-inactive" onclick="switchAuthTab('register')">สมัครสมาชิก</button>
-            </div>
-            
-            <!-- Login Form -->
-            <div id="login-form" class="block">
-                <div class="mb-4">
-                    <label class="block text-gray-600 mb-2 text-sm">อีเมล</label>
-                    <input type="email" id="login-email" class="input-field" placeholder="your@email.com">
-                </div>
-                <div class="mb-6">
-                    <label class="block text-gray-600 mb-2 text-sm">รหัสผ่าน</label>
-                    <input type="password" id="login-password" class="input-field" placeholder="••••••••">
-                </div>
-                <button class="btn-primary w-full" onclick="login()">เข้าสู่ระบบ</button>
-                <p class="text-center text-sm text-gray-500 mt-4 cursor-pointer" onclick="forgotPassword()">ลืมรหัสผ่าน?</p>
-            </div>
-            
-            <!-- Register Form -->
-            <div id="register-form" class="hidden">
-                <div class="mb-4">
-                    <label class="block text-gray-600 mb-2 text-sm">ชื่อผู้ใช้</label>
-                    <input type="text" id="register-username" class="input-field" placeholder="ชื่อผู้ใช้ของคุณ">
-                </div>
-                <div class="mb-4">
-                    <label class="block text-gray-600 mb-2 text-sm">อีเมล</label>
-                    <input type="email" id="register-email" class="input-field" placeholder="your@email.com">
-                </div>
-                <div class="mb-6">
-                    <label class="block text-gray-600 mb-2 text-sm">รหัสผ่าน</label>
-                    <input type="password" id="register-password" class="input-field" placeholder="••••••••">
-                </div>
-                <button class="btn-primary w-full" onclick="register()">สมัครสมาชิก</button>
-            </div>
-        </div>
-        
-        <!-- Features Card -->
-        <div class="card">
-            <h2 class="text-xl font-semibold mb-4">คุณสมบัติเด่น</h2>
-            
-            <div class="flex items-start mb-4">
-                <div class="bg-pink-100 p-2 rounded-full mr-3">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                    </svg>
-                </div>
-                <div>
-                    <h3 class="font-medium">ติดตามน้ำหนัก</h3>
-                    <p class="text-sm text-gray-500">บันทึกและติดตามน้ำหนักของคุณได้อย่างง่ายดาย พร้อมกราฟแสดงความคืบหน้า</p>
-                </div>
-            </div>
-            
-            <div class="flex items-start mb-4">
-                <div class="bg-pink-100 p-2 rounded-full mr-3">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                    </svg>
-                </div>
-                <div>
-                    <h3 class="font-medium">วางแผนอาหาร</h3>
-                    <p class="text-sm text-gray-500">บันทึกอาหารที่ทานในแต่ละมื้อ คำนวณแคลอรี่ และติดตามการดื่มน้ำ</p>
-                </div>
-            </div>
-            
-            <div class="flex items-start">
-                <div class="bg-pink-100 p-2 rounded-full mr-3">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                </div>
-                <div>
-                    <h3 class="font-medium">ติดตามรอบเดือน</h3>
-                    <p class="text-sm text-gray-500">บันทึกและคาดการณ์รอบเดือน พร้อมบันทึกอาการต่างๆ ที่เกิดขึ้น</p>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Testimonials Card -->
-        <div class="card">
-            <h2 class="text-xl font-semibold mb-4">รีวิวจากผู้ใช้</h2>
-            
-            <div class="mb-4 pb-4 border-b border-gray-100">
-                <div class="flex items-center mb-2">
-                    <div class="w-8 h-8 bg-pink-100 rounded-full flex items-center justify-center text-pink-500 font-bold mr-2">
-                        N
-                    </div>
+        <!-- Main App (New Design) -->
+        <div id="main-app" class="app-container hidden">
+            <div class="container">
+                <header class="flex justify-between items-center mb-6">
                     <div>
-                        <p class="font-medium">นุชนาถ ส.</p>
-                        <div class="flex text-yellow-400 text-sm">
-                            <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
+                        <h1 class="text-2xl font-bold text-pink-500 flex items-center">
+                            <span class="text-3xl mr-2">🌸</span> RosieTrack
+                        </h1>
+                        <p class="text-sm text-gray-500">"ดูแลสุขภาพของคุณอย่างเข้าใจ"</p>
+                    </div>
+                    <div class="flex items-center">
+                        <div id="main-app-avatar" class="w-10 h-10 bg-pink-100 rounded-full flex items-center justify-center text-pink-500 mr-2 overflow-hidden"></div>
+                        <button class="text-sm text-gray-500" id="logout-btn">ออกจากระบบ</button>
+                    </div>
+                </header>
+                
+                <!-- Main Navigation Tabs -->
+                <div class="flex mb-6 border-b border-gray-200">
+                    <button data-tab="weight" class="main-tab w-1/4 py-3 text-center font-medium tab-active">
+                        <span class="block text-lg mb-1">⚖️</span>น้ำหนัก
+                    </button>
+                    <button data-tab="meals" class="main-tab w-1/4 py-3 text-center font-medium tab-inactive">
+                        <span class="block text-lg mb-1">🍽️</span>อาหาร
+                    </button>
+                    <button data-tab="period" class="main-tab w-1/4 py-3 text-center font-medium tab-inactive">
+                        <span class="block text-lg mb-1">🌙</span>รอบเดือน
+                    </button>
+                    <button data-tab="profile" class="main-tab w-1/4 py-3 text-center font-medium tab-inactive">
+                        <span class="block text-lg mb-1">👤</span>โปรไฟล์
+                    </button>
+                </div>
+                
+                <!-- Weight Tracker Tab -->
+                <div data-content="weight" class="tab-content block">
+                    <div class="card mb-6">
+                        <div class="flex justify-between items-center mb-4"><h2 class="text-xl font-semibold">ภาพรวมน้ำหนัก</h2><button class="btn-primary text-sm" id="open-weight-modal-btn">+ บันทึก</button></div>
+                        <div class="grid grid-cols-3 gap-4 text-center mb-6">
+                            <div><p class="text-sm text-gray-500">ปัจจุบัน</p><p id="current-weight" class="text-2xl font-bold text-gray-800">--</p></div>
+                            <div><p class="text-sm text-gray-500">เป้าหมาย</p><p id="target-weight" class="text-2xl font-bold text-pink-500">--</p></div>
+                            <div><p class="text-sm text-gray-500">เหลืออีก</p><p id="weight-to-go" class="text-2xl font-bold text-blue-400">--</p></div>
                         </div>
+                        <div class="mb-4"><div class="flex justify-between text-sm mb-1"><span>ความคืบหน้า</span><span id="weight-progress-percent">0%</span></div><div class="progress-bar"><div id="weight-progress-bar" class="progress-fill" style="width: 0%"></div></div></div>
+                    </div>
+                    <div class="card mb-6"><h2 class="text-xl font-semibold mb-4">กราฟน้ำหนัก 30 วัน</h2><div class="h-64"><canvas id="weightChart"></canvas></div></div>
+                    <div id="monthly-analysis-card" class="card hidden"><h2 class="text-xl font-bold text-gray-700 mb-4">✨ Rosie's Analysis ✨</h2><div id="analysis-content" class="text-sm text-gray-600 space-y-2 whitespace-pre-wrap"></div><button id="get-analysis-btn" class="btn-primary w-full mt-4">ขอคำแนะนำจาก Rosie</button></div>
+                </div>
+                
+                <!-- Meals Tracker Tab -->
+                <div data-content="meals" class="tab-content hidden">
+                    <div class="card mb-6">
+                        <div class="flex justify-between items-center mb-4"><h2 class="text-xl font-semibold">บันทึกอาหาร</h2><input type="date" id="meal-date-picker" class="input-field !w-auto !mb-0 text-sm"></div>
+                        <div id="meal-list" class="space-y-4"></div>
+                        <div class="border-t border-gray-100 pt-4 mt-4"><div class="flex justify-between mb-2"><p class="font-medium text-gray-700">รวมแคลอรี่</p><p id="total-calories" class="font-bold text-pink-500">0 / 1,500 kcal</p></div><div class="progress-bar"><div id="calories-progress" class="progress-fill" style="width: 0%"></div></div></div>
+                    </div>
+                    <div class="card"><h2 class="text-xl font-semibold mb-4">💧 Water Tracker (สำหรับวันนี้)</h2><div class="flex justify-between items-center mb-4"><p class="text-sm text-gray-500">เป้าหมาย: 2.0 ลิตร</p><p id="water-intake-display" class="font-semibold text-blue-500">0.0 / 2.0 ลิตร</p></div><div id="water-drops-container" class="flex flex-wrap justify-center mb-4"></div></div>
+                </div>
+
+                <!-- Period Tracker Tab -->
+                <div data-content="period" class="tab-content hidden">
+                    <div class="card"><h2 class="text-xl font-semibold mb-4">🌙 Luna Diary</h2><div class="flex justify-between items-center mb-4"><button id="prev-month-period" class="p-2 rounded-full hover:bg-pink-100"><i data-lucide="chevron-left" class="text-pink-500"></i></button><h3 id="current-month-period" class="text-lg font-semibold text-pink-500"></h3><button id="next-month-period" class="p-2 rounded-full hover:bg-pink-100"><i data-lucide="chevron-right" class="text-pink-500"></i></button></div><div class="grid grid-cols-7 text-center text-sm font-bold text-gray-400 mb-2"><div>อา</div><div>จ</div><div>อ</div><div>พ</div><div>พฤ</div><div>ศ</div><div>ส</div></div><div id="period-calendar" class="grid grid-cols-7 gap-1 text-center"></div><div class="flex justify-center space-x-4 mt-4 text-xs"><div class="flex items-center"><span class="w-3 h-3 bg-pink-500 rounded-full mr-2"></span>ประจำเดือน</div><div class="flex items-center"><span class="w-3 h-3 bg-pink-200 rounded-full mr-2"></span>คาดการณ์</div></div><div id="period-prediction-summary" class="text-center text-sm text-gray-600 mt-4 bg-pink-50 p-2 rounded-lg"></div><button id="open-period-modal-btn" class="btn-primary w-full mt-4">บันทึกรอบเดือน</button></div>
+                </div>
+                
+                <!-- Profile Tab -->
+                <div data-content="profile" class="tab-content hidden">
+                    <div class="card mb-6">
+                        <div class="flex items-center mb-6">
+                            <label for="profile-pic-input" class="profile-pic-container w-20 h-20 mr-4">
+                                <div id="profile-avatar-large" class="w-20 h-20 bg-pink-100 rounded-full flex items-center justify-center text-pink-500 text-2xl font-bold overflow-hidden"></div>
+                                <div class="overlay"><i data-lucide="camera" class="text-white w-8 h-8"></i></div>
+                            </label>
+                            <input type="file" id="profile-pic-input" class="hidden" accept="image/*">
+                            <div><h3 id="profile-name" class="font-medium text-lg text-gray-800">--</h3><p id="profile-email" class="text-gray-500 text-sm">--</p></div>
+                        </div>
+                        <div class="border-t border-gray-100 pt-4"><div class="grid grid-cols-2 gap-4" id="profile-details-grid"></div><button class="mt-4 border border-pink-300 text-pink-500 w-full py-2 rounded-lg font-medium text-sm hover:bg-pink-50" id="open-profile-modal-btn">แก้ไขข้อมูลส่วนตัว</button></div>
                     </div>
                 </div>
-                <p class="text-sm text-gray-600">"แอพนี้ช่วยให้ฉันติดตามรอบเดือนได้แม่นยำมาก และยังช่วยให้ฉันควบคุมน้ำหนักได้ดีขึ้นด้วย ขอบคุณมากๆ!"</p>
             </div>
-            
-            <div>
-                <div class="flex items-center mb-2">
-                    <div class="w-8 h-8 bg-pink-100 rounded-full flex items-center justify-center text-pink-500 font-bold mr-2">
-                        P
-                    </div>
-                    <div>
-                        <p class="font-medium">พิมพ์มาดา ว.</p>
-                        <div class="flex text-yellow-400 text-sm">
-                            <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
-                        </div>
-                    </div>
-                </div>
-                <p class="text-sm text-gray-600">"ฉันชอบที่สามารถติดตามทั้งน้ำหนัก อาหาร และรอบเดือนได้ในแอพเดียว ใช้งานง่ายมาก แนะนำเลยค่ะ"</p>
-            </div>
-        </div>
-        
-        <!-- Call to Action -->
-        <div class="text-center mt-6 mb-10">
-            <button class="btn-primary px-8 py-3" onclick="scrollToTop()">เริ่มต้นใช้งานตอนนี้</button>
-            <p class="text-sm text-gray-500 mt-2">ฟรี! ไม่มีค่าใช้จ่าย</p>
         </div>
     </div>
 
-    <!-- Toast Notification -->
-    <div id="toast" class="fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg transform transition-all duration-300 opacity-0 -translate-y-5">
-        <span id="toast-message"></span>
-    </div>
+    <div id="modal-container"></div>
 
-    <script>
-        // Switch between login and register tabs
-        function switchAuthTab(tab) {
-            if (tab === 'login') {
-                document.getElementById('login-tab').classList.add('tab-active');
-                document.getElementById('login-tab').classList.remove('tab-inactive');
-                document.getElementById('register-tab').classList.add('tab-inactive');
-                document.getElementById('register-tab').classList.remove('tab-active');
-                
-                document.getElementById('login-form').classList.remove('hidden');
-                document.getElementById('register-form').classList.add('hidden');
-            } else {
-                document.getElementById('register-tab').classList.add('tab-active');
-                document.getElementById('register-tab').classList.remove('tab-inactive');
-                document.getElementById('login-tab').classList.add('tab-inactive');
-                document.getElementById('login-tab').classList.remove('tab-active');
-                
-                document.getElementById('register-form').classList.remove('hidden');
-                document.getElementById('login-form').classList.add('hidden');
-            }
-        }
-        
-        // Show toast notification
-        function showToast(message, type = 'success') {
-            const toast = document.getElementById('toast');
-            const toastMessage = document.getElementById('toast-message');
-            
-            // Set message
-            toastMessage.textContent = message;
-            
-            // Set color based on type
-            toast.classList.remove('bg-green-500', 'bg-red-500');
-            if (type === 'error') {
-                toast.classList.add('bg-red-500');
-            } else {
-                toast.classList.add('bg-green-500');
-            }
-            
-            // Show toast
-            toast.classList.remove('opacity-0', '-translate-y-5');
-            
-            // Hide toast after 3 seconds
-            setTimeout(() => {
-                toast.classList.add('opacity-0', '-translate-y-5');
-            }, 3000);
-        }
-        
-        // Login function (simulation)
-        function login() {
-            const email = document.getElementById('login-email').value;
-            const password = document.getElementById('login-password').value;
-            
-            if (!email || !password) {
-                showToast('กรุณากรอกอีเมลและรหัสผ่าน', 'error');
-                return;
-            }
-            
-            // Simulate login success
-            showToast('เข้าสู่ระบบสำเร็จ! (ตัวอย่าง)');
-        }
-        
-        // Register function (simulation)
-        function register() {
-            const username = document.getElementById('register-username').value;
-            const email = document.getElementById('register-email').value;
-            const password = document.getElementById('register-password').value;
-            
-            if (!username || !email || !password) {
-                showToast('กรุณากรอกข้อมูลให้ครบถ้วน', 'error');
-                return;
-            }
-            
-            // Simulate registration success
-            showToast('สมัครสมาชิกสำเร็จ! (ตัวอย่าง)');
-        }
-        
-        // Forgot password function (simulation)
-        function forgotPassword() {
-            const email = document.getElementById('login-email').value;
-            
-            if (!email) {
-                showToast('กรุณากรอกอีเมลที่ต้องการรีเซ็ตรหัสผ่าน', 'error');
-                return;
-            }
-            
-            showToast('หากมีอีเมลนี้ในระบบ เราได้ส่งลิงก์ไปให้แล้ว');
-        }
-        
-        // Scroll to top function
-        function scrollToTop() {
-            window.scrollTo({
-                top: 0,
-                behavior: 'smooth'
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendEmailVerification } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, addDoc, collection, query, onSnapshot, orderBy, getDocs, where, Timestamp, limit } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
+
+        // --- CONFIG & INITIALIZATION ---
+        const firebaseConfig = { apiKey: "AIzaSyBTfOjuUjb9vVXCdE01pZP3mT1eEAgJMF8", authDomain: "rosietrack-e822c.firebaseapp.com", projectId: "rosietrack-e822c", storageBucket: "rosietrack-e822c.appspot.com", messagingSenderId: "1085754683487", appId: "1:1085754683487:web:d2f0b9f8f4a3c1e2b3a4d5" };
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const storage = getStorage(app);
+        const appId = firebaseConfig.appId;
+
+        // --- GLOBAL STATE ---
+        let currentUser, userId, weightChart;
+        let profileUnsubscribe, weightUnsubscribe, mealUnsubscribe, periodUnsubscribe, waterUnsubscribe;
+
+        // --- UI ELEMENTS ---
+        const authScreen = document.getElementById('auth-screen');
+        const mainApp = document.getElementById('main-app');
+        const authMessage = document.getElementById('auth-message');
+        const modalContainer = document.getElementById('modal-container');
+
+        // --- HELPER FUNCTIONS ---
+        const showAuthMessage = (message, isError = true) => {
+            authMessage.textContent = message;
+            authMessage.style.color = isError ? '#ef4444' : '#10b981';
+        };
+        const toThaiDate = (date) => date.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
+
+        // --- AUTH LOGIC ---
+        const setupAuthListeners = () => {
+            document.getElementById('login-tab-btn').addEventListener('click', () => switchAuthTab('login'));
+            document.getElementById('register-tab-btn').addEventListener('click', () => switchAuthTab('register'));
+
+            document.getElementById('register-btn').addEventListener('click', async () => {
+                const name = document.getElementById('register-name').value;
+                const email = document.getElementById('register-email').value;
+                const password = document.getElementById('register-password').value;
+                if (!name || !email || !password) return showAuthMessage('กรุณากรอกข้อมูลให้ครบทุกช่อง');
+                showAuthMessage('', false);
+                try {
+                    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                    await sendEmailVerification(userCredential.user);
+                    const profileRef = doc(db, `artifacts/${appId}/users/${userCredential.user.uid}/profile`, 'info');
+                    await setDoc(profileRef, { name, email });
+                    showAuthMessage('สมัครสมาชิกสำเร็จ! กรุณาตรวจสอบอีเมลเพื่อยืนยันบัญชีของคุณ', false);
+                } catch (error) { console.error(error); showAuthMessage('สมัครสมาชิกไม่สำเร็จ'); }
             });
             
-            // Focus on username field if register tab is active, otherwise focus on email field
-            if (!document.getElementById('register-form').classList.contains('hidden')) {
-                document.getElementById('register-username').focus();
+            document.getElementById('login-btn').addEventListener('click', async () => {
+                const email = document.getElementById('login-email').value;
+                const password = document.getElementById('login-password').value;
+                if (!email || !password) return showAuthMessage('กรุณากรอกอีเมลและรหัสผ่าน');
+                showAuthMessage('', false);
+                try {
+                    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                    if (!userCredential.user.emailVerified) {
+                        showAuthMessage('กรุณายืนยันอีเมลของคุณก่อนเข้าสู่ระบบ');
+                        signOut(auth);
+                    }
+                } catch (error) { console.error(error); showAuthMessage('อีเมลหรือรหัสผ่านไม่ถูกต้อง'); }
+            });
+
+            document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
+        };
+
+        const switchAuthTab = (tab) => {
+            showAuthMessage('', false);
+            const isLogin = tab === 'login';
+            document.getElementById('login-tab-btn').classList.toggle('tab-active', isLogin);
+            document.getElementById('login-tab-btn').classList.toggle('tab-inactive', !isLogin);
+            document.getElementById('register-tab-btn').classList.toggle('tab-active', !isLogin);
+            document.getElementById('register-tab-btn').classList.toggle('tab-inactive', isLogin);
+            document.getElementById('login-form').classList.toggle('hidden', !isLogin);
+            document.getElementById('register-form').classList.toggle('hidden', isLogin);
+        };
+
+        onAuthStateChanged(auth, (user) => {
+            [profileUnsubscribe, weightUnsubscribe, mealUnsubscribe, periodUnsubscribe, waterUnsubscribe].forEach(unsub => unsub && unsub());
+            if (user && user.emailVerified) {
+                currentUser = user; userId = user.uid;
+                authScreen.classList.add('hidden');
+                mainApp.classList.remove('hidden');
+                initializeAppContent();
             } else {
-                document.getElementById('login-email').focus();
+                currentUser = null; userId = null;
+                authScreen.classList.remove('hidden');
+                mainApp.classList.add('hidden');
+                if (weightChart) weightChart.destroy();
+                switchAuthTab('login');
+            }
+        });
+
+        // --- APP INITIALIZATION ---
+        const initializeAppContent = () => {
+            lucide.createIcons();
+            setupNavigation();
+            setupAllTabs();
+            switchTab('weight');
+        };
+
+        const setupNavigation = () => {
+            document.querySelectorAll('.main-tab').forEach(tab => {
+                tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+            });
+        };
+
+        const switchTab = (tabId) => {
+            document.querySelectorAll('.main-tab').forEach(tab => {
+                tab.classList.toggle('tab-active', tab.dataset.tab === tabId);
+                tab.classList.toggle('tab-inactive', tab.dataset.tab !== tabId);
+            });
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.toggle('hidden', content.dataset.content !== tabId);
+            });
+        };
+        
+        const setupAllTabs = () => {
+            setupProfile();
+            setupWeightTracker();
+            setupMealPlanner();
+            setupPeriodTracker();
+        };
+
+        // --- PROFILE LOGIC ---
+        const setupProfile = () => {
+            const profileRef = doc(db, `artifacts/${appId}/users/${userId}/profile`, 'info');
+            profileUnsubscribe = onSnapshot(profileRef, (docSnap) => {
+                const data = docSnap.exists() ? docSnap.data() : {};
+                renderProfile(data);
+                renderWeightProgress(data.startWeight, data.goalWeight, null);
+            });
+            document.getElementById('open-profile-modal-btn').onclick = async () => {
+                const docSnap = await getDoc(profileRef);
+                showProfileModal(docSnap.exists() ? docSnap.data() : {});
+            };
+            document.getElementById('profile-pic-input').addEventListener('change', async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const storageRef = ref(storage, `profile_pictures/${userId}`);
+                try {
+                    await uploadBytes(storageRef, file);
+                    const photoURL = await getDownloadURL(storageRef);
+                    await setDoc(profileRef, { photoURL }, { merge: true });
+                } catch (error) { console.error("Upload failed:", error); }
+            });
+        };
+
+        const renderProfile = (data) => {
+            const name = data.name || 'ผู้ใช้';
+            const initial = name.charAt(0).toUpperCase();
+            const avatarElements = [document.getElementById('profile-avatar-large'), document.getElementById('main-app-avatar')];
+            avatarElements.forEach(el => {
+                if (data.photoURL) {
+                    el.innerHTML = `<img src="${data.photoURL}" class="w-full h-full object-cover" alt="Profile">`;
+                } else {
+                    el.innerHTML = `<span class="font-bold">${initial}</span>`;
+                }
+            });
+            document.getElementById('profile-name').textContent = name;
+            document.getElementById('profile-email').textContent = currentUser.email;
+            document.getElementById('profile-details-grid').innerHTML = `<div><p class="text-sm text-gray-500">อายุ</p><p class="font-medium">${data.age || '--'} ปี</p></div><div><p class="text-sm text-gray-500">ส่วนสูง</p><p class="font-medium">${data.height || '--'} ซม.</p></div><div><p class="text-sm text-gray-500">น้ำหนักเริ่มต้น</p><p class="font-medium">${data.startWeight || '--'} กก.</p></div><div><p class="text-sm text-gray-500">น้ำหนักปัจจุบัน</p><p class="font-medium">${data.currentWeight || '--'} กก.</p></div>`;
+        };
+        
+        // --- The rest of the JS logic (Weight, Meal, Period, AI, Modals) remains largely the same, just adapted for new element IDs ---
+        // ... (All other functions from previous version are here, adapted to new IDs) ...
+        function setupWeightTracker() {
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            const q = query(collection(db, `artifacts/${appId}/users/${userId}/weightEntries`), where("date", ">=", Timestamp.fromDate(thirtyDaysAgo)), orderBy("date", "asc"));
+            weightUnsubscribe = onSnapshot(q, async (snapshot) => {
+                const entries = snapshot.docs.map(doc => doc.data());
+                const latestWeight = entries.length > 0 ? entries[entries.length - 1].weight : null;
+                const profileRef = doc(db, `artifacts/${appId}/users/${userId}/profile`, 'info');
+                const profileSnap = await getDoc(profileRef);
+                const profileData = profileSnap.exists() ? profileSnap.data() : {};
+                if (latestWeight && (!profileData.currentWeight || profileData.currentWeight !== latestWeight)) {
+                    await setDoc(profileRef, { currentWeight: latestWeight }, { merge: true });
+                }
+                renderWeightProgress(profileData.startWeight, profileData.targetWeight, latestWeight);
+                renderWeightChart(entries);
+                triggerMonthlyAnalysisCheck();
+            });
+            document.getElementById('open-weight-modal-btn').onclick = () => showWeightModal();
+        }
+
+        function renderWeightProgress(start, goal, current) {
+            document.getElementById('current-weight').textContent = current ? `${current.toFixed(1)} kg` : '-- kg';
+            document.getElementById('target-weight').textContent = goal ? `${goal.toFixed(1)} kg` : '-- kg';
+            if (current && goal) document.getElementById('weight-to-go').textContent = `${(current - goal).toFixed(1)} kg`;
+            else document.getElementById('weight-to-go').textContent = '-- kg';
+            if (start && goal && current) {
+                const percentage = Math.max(0, Math.min(100, ((start - current) / (start - goal)) * 100));
+                document.getElementById('weight-progress-percent').textContent = `${percentage.toFixed(0)}%`;
+                document.getElementById('weight-progress-bar').style.width = `${percentage}%`;
+            } else {
+                document.getElementById('weight-progress-percent').textContent = `0%`;
+                document.getElementById('weight-progress-bar').style.width = `0%`;
             }
         }
+
+        function renderWeightChart(entries) {
+            const ctx = document.getElementById('weightChart').getContext('2d');
+            if (weightChart) weightChart.destroy();
+            weightChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: entries.map(e => e.date.toDate()),
+                    datasets: [{ label: 'น้ำหนัก (kg)', data: entries.map(e => e.weight), borderColor: '#ff8fab', backgroundColor: 'rgba(255, 143, 171, 0.1)', fill: true, tension: 0.4, pointBackgroundColor: '#ff8fab', pointRadius: entries.length < 15 ? 4 : 0, }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, animation: { duration: 1000, easing: 'easeInOutQuad' }, plugins: { legend: { display: false } }, scales: { x: { type: 'time', time: { unit: 'day', tooltipFormat: 'dd MMM yy' }, grid: { display: false } }, y: { beginAtZero: false } } }
+            });
+        }
+
+        function setupMealPlanner() {
+            const datePicker = document.getElementById('meal-date-picker');
+            datePicker.valueAsDate = new Date();
+            const renderMealsForDate = (date) => {
+                const startOfDay = new Date(date.setHours(0, 0, 0, 0));
+                const endOfDay = new Date(date.setHours(23, 59, 59, 999));
+                const q = query(collection(db, `artifacts/${appId}/users/${userId}/mealEntries`), where("date", ">=", Timestamp.fromDate(startOfDay)), where("date", "<=", Timestamp.fromDate(endOfDay)));
+                if (mealUnsubscribe) mealUnsubscribe();
+                mealUnsubscribe = onSnapshot(q, (snapshot) => {
+                    const meals = { breakfast: [], lunch: [], dinner: [], snacks: [] };
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        if (meals[data.type]) meals[data.type].push({ id: doc.id, ...data });
+                    });
+                    renderMealList(meals);
+                });
+            };
+            datePicker.addEventListener('change', () => renderMealsForDate(datePicker.valueAsDate));
+            renderMealsForDate(new Date());
+            const waterDocId = new Date().toISOString().split('T')[0];
+            const waterDocRef = doc(db, `artifacts/${appId}/users/${userId}/waterEntries`, waterDocId);
+            if(waterUnsubscribe) waterUnsubscribe();
+            waterUnsubscribe = onSnapshot(waterDocRef, (docSnap) => renderWaterTracker(docSnap.exists() ? docSnap.data().intake : 0));
+        }
+
+        function renderMealList(meals) {
+            const mealListEl = document.getElementById('meal-list');
+            const mealTypes = [{ key: 'breakfast', name: '🌞 มื้อเช้า' }, { key: 'lunch', name: '☀️ มื้อกลางวัน' }, { key: 'dinner', name: '🌙 มื้อเย็น' }, { key: 'snacks', name: '🍪 ของว่าง' }];
+            let totalCalories = 0;
+            mealListEl.innerHTML = '';
+            mealTypes.forEach(type => {
+                const container = document.createElement('div');
+                let mealHTML = `<div class="flex justify-between items-center mb-2"><p class="font-medium text-gray-700">${type.name}</p><button class="btn-primary text-xs px-2 py-1" data-meal-type="${type.key}">+ เพิ่ม</button></div>`;
+                if (meals[type.key].length > 0) {
+                    mealHTML += '<div class="pl-4 space-y-2">';
+                    meals[type.key].forEach(meal => {
+                        totalCalories += meal.calories;
+                        mealHTML += `<div class="flex justify-between items-center text-sm"><p>${meal.name} (${meal.calories} kcal)</p><button class="text-xs text-blue-500" data-meal-type="${type.key}" data-meal-data='${JSON.stringify(meal)}'>แก้ไข</button></div>`;
+                    });
+                    mealHTML += '</div>';
+                }
+                container.innerHTML = mealHTML;
+                mealListEl.appendChild(container);
+            });
+            document.getElementById('total-calories').textContent = `${totalCalories.toLocaleString()} / 1,500 kcal`;
+            document.getElementById('calories-progress').style.width = `${Math.min(100, (totalCalories / 1500) * 100)}%`;
+            mealListEl.querySelectorAll('button').forEach(btn => btn.onclick = () => showMealModal(btn.dataset.mealType, btn.dataset.mealData ? JSON.parse(btn.dataset.mealData) : null));
+        }
+        
+        function renderWaterTracker(intake = 0) {
+            const container = document.getElementById('water-drops-container');
+            container.innerHTML = '';
+            const totalDrops = 10;
+            const filledDrops = Math.round(intake / 0.2);
+            document.getElementById('water-intake-display').textContent = `${intake.toFixed(1)} / 2.0 ลิตร`;
+            for(let i = 1; i <= totalDrops; i++) {
+                const drop = document.createElement('div');
+                drop.className = `w-8 h-8 bg-blue-100 rounded-full m-1 cursor-pointer transition-all ${i <= filledDrops ? '!bg-blue-500' : ''}`;
+                drop.onclick = async () => {
+                    const newIntake = i * 0.2;
+                    const waterDocId = new Date().toISOString().split('T')[0];
+                    await setDoc(doc(db, `artifacts/${appId}/users/${userId}/waterEntries`, waterDocId), { intake: newIntake, date: Timestamp.now() });
+                };
+                container.appendChild(drop);
+            }
+        }
+
+        async function triggerMonthlyAnalysisCheck() {
+            const q = query(collection(db, `artifacts/${appId}/users/${userId}/weightEntries`), orderBy('date'), limit(30));
+            const snapshot = await getDocs(q);
+            const analysisCard = document.getElementById('monthly-analysis-card');
+            if (snapshot.size >= 30) {
+                analysisCard.classList.remove('hidden');
+                document.getElementById('get-analysis-btn').onclick = getAiAnalysis;
+            } else {
+                analysisCard.classList.add('hidden');
+            }
+        }
+
+        async function getAiAnalysis() {
+            const button = document.getElementById('get-analysis-btn');
+            const contentDiv = document.getElementById('analysis-content');
+            contentDiv.innerHTML = '<div class="flex items-center justify-center p-4"><div class="spinner"></div><p class="ml-2">Rosie กำลังวิเคราะห์ข้อมูลสักครู่นะคะ...</p></div>';
+            button.disabled = true;
+
+            try {
+                const thirtyDaysAgo = new Date();
+                thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                const weightQuery = query(collection(db, `artifacts/${appId}/users/${userId}/weightEntries`), where("date", ">=", Timestamp.fromDate(thirtyDaysAgo)), orderBy("date", "asc"));
+                const mealQuery = query(collection(db, `artifacts/${appId}/users/${userId}/mealEntries`), where("date", ">=", Timestamp.fromDate(thirtyDaysAgo)), orderBy("date", "asc"));
+                
+                const [weightSnapshot, mealSnapshot] = await Promise.all([getDocs(weightQuery), getDocs(mealQuery)]);
+                
+                const weightData = weightSnapshot.docs.map(d => `วันที่ ${d.data().date.toDate().toLocaleDateString('th-TH')}: ${d.data().weight} kg`).join('\n');
+                const mealData = mealSnapshot.docs.map(d => `วันที่ ${d.data().date.toDate().toLocaleDateString('th-TH')}, มื้อ ${d.data().type}: ${d.data().name} (${d.data().calories} kcal)`).join('\n');
+                
+                const prompt = `คุณคือ "Rosie" ผู้ช่วยด้านสุขภาพที่อบอุ่นและให้กำลังใจ โปรดวิเคราะห์ข้อมูลสุขภาพ 30 วันล่าสุดของผู้ใช้เป็นภาษาไทย และให้คำแนะนำที่นำไปใช้ได้จริง โดยใช้ข้อมูลต่อไปนี้:\n\nข้อมูลน้ำหนัก:\n${weightData}\n\nข้อมูลมื้ออาหาร:\n${mealData}\n\nโปรดจัดรูปแบบคำตอบดังนี้:\n**✨ สรุปภาพรวมน้ำหนัก:**\n(วิเคราะห์แนวโน้มน้ำหนักที่เห็นจากข้อมูล เช่น ลดลงต่อเนื่อง, คงที่, หรือผันผวน)\n\n**🍽️ การวิเคราะห์พฤติกรรมการกิน:**\n(วิเคราะห์พฤติกรรมการกินที่น่าสนใจ เช่น การกินของว่าง, ปริมาณแคลอรี่เฉลี่ย, หรือความสม่ำเสมอในการกิน)\n\n**💡 คำแนะนำจาก Rosie:**\n1.  **ด้านการกิน:** (ให้คำแนะนำที่เฉพาะเจาะจงและทำได้ง่าย 1 ข้อ)\n2.  **ด้านการออกกำลังกาย:** (ให้คำแนะนำการออกกำลังกายที่เหมาะสมกับไลฟ์สไตล์ 1 ข้อ)\n\nพูดด้วยน้ำเสียงที่เป็นมิตร ให้กำลังใจ และไม่ตำหนิ`;
+
+                const chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
+                const payload = { contents: chatHistory };
+                const apiKey = "";
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+                
+                const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                if (!response.ok) throw new Error(`API Error: ${response.statusText}`);
+                const result = await response.json();
+                if (result.candidates && result.candidates.length > 0) {
+                    contentDiv.innerHTML = result.candidates[0].content.parts[0].text;
+                } else {
+                    throw new Error("No content from AI.");
+                }
+
+            } catch (error) {
+                console.error("AI Analysis Error:", error);
+                contentDiv.innerHTML = "เกิดข้อผิดพลาดในการวิเคราะห์ข้อมูล ขออภัยในความไม่สะดวกค่ะ ลองใหม่อีกครั้งนะคะ";
+            } finally {
+                button.disabled = false;
+            }
+        }
+
+        let periodDate = new Date();
+        function setupPeriodTracker() {
+             document.getElementById('prev-month-period').addEventListener('click', () => { periodDate.setMonth(periodDate.getMonth() - 1); renderPeriodCalendar(); });
+             document.getElementById('next-month-period').addEventListener('click', () => { periodDate.setMonth(periodDate.getMonth() + 1); renderPeriodCalendar(); });
+             document.getElementById('open-period-modal-btn').onclick = () => showPeriodModal();
+             periodUnsubscribe = onSnapshot(collection(db, `artifacts/${appId}/users/${userId}/periodEntries`), () => renderPeriodCalendar());
+        }
+        
+        async function renderPeriodCalendar() {
+            const calendarEl = document.getElementById('period-calendar');
+            const summaryEl = document.getElementById('period-prediction-summary');
+            const monthTitleEl = document.getElementById('current-month-period');
+            calendarEl.innerHTML = '';
+            monthTitleEl.textContent = periodDate.toLocaleDateString('th-TH', { month: 'long', year: 'numeric' });
+
+            const q = query(collection(db, `artifacts/${appId}/users/${userId}/periodEntries`), orderBy("startDate", "asc"));
+            const snapshot = await getDocs(q);
+            const periodEntries = snapshot.docs.map(doc => ({ startDate: doc.data().startDate.toDate(), endDate: doc.data().endDate.toDate() }));
+
+            let predictedStartDate, predictedEndDate;
+            if (periodEntries.length > 0) {
+                let avgCycleLength = 28, avgPeriodDuration = 5;
+                const oneDay = 86400000;
+                if (periodEntries.length > 1) {
+                    let cycleSum = 0;
+                    for (let i = 1; i < periodEntries.length; i++) cycleSum += Math.round(Math.abs(periodEntries[i].startDate - periodEntries[i-1].startDate) / oneDay);
+                    avgCycleLength = Math.round(cycleSum / (periodEntries.length - 1));
+                }
+                let durationSum = 0;
+                periodEntries.forEach(entry => durationSum += Math.round(Math.abs(entry.endDate - entry.startDate) / oneDay) + 1);
+                avgPeriodDuration = Math.round(durationSum / periodEntries.length);
+                const lastEntry = periodEntries[periodEntries.length - 1];
+                predictedStartDate = new Date(lastEntry.startDate);
+                predictedStartDate.setDate(predictedStartDate.getDate() + avgCycleLength);
+                predictedEndDate = new Date(predictedStartDate);
+                predictedEndDate.setDate(predictedEndDate.getDate() + avgPeriodDuration - 1);
+                summaryEl.innerHTML = `คาดการณ์รอบเดือนครั้งถัดไป: <strong class="text-pink-600">${toThaiDate(predictedStartDate)}</strong> (ระยะห่างเฉลี่ย ${avgCycleLength} วัน)`;
+            } else {
+                summaryEl.textContent = 'บันทึกข้อมูลรอบเดือนของคุณเพื่อเริ่มการคาดการณ์';
+            }
+
+            const year = periodDate.getFullYear(), month = periodDate.getMonth();
+            const firstDayOfMonth = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const today = new Date();
+            for (let i = 0; i < firstDayOfMonth; i++) calendarEl.insertAdjacentHTML('beforeend', '<div></div>');
+            for (let day = 1; day <= daysInMonth; day++) {
+                const currentDay = new Date(year, month, day);
+                const dayEl = document.createElement('div');
+                dayEl.className = 'w-10 h-10 flex items-center justify-center rounded-full cursor-pointer transition-all';
+                dayEl.textContent = day;
+                let isPeriod = periodEntries.some(entry => currentDay >= entry.startDate && currentDay <= entry.endDate);
+                if (isPeriod) dayEl.classList.add('bg-pink-500', 'text-white');
+                else if (predictedStartDate && currentDay >= predictedStartDate && currentDay <= predictedEndDate) dayEl.classList.add('bg-pink-200', 'text-pink-700');
+                if(currentDay.toDateString() === today.toDateString()) dayEl.classList.add('border-2', 'border-pink-500');
+                calendarEl.appendChild(dayEl);
+            }
+        }
+
+        function closeModal() { modalContainer.innerHTML = ''; }
+        
+        function showWeightModal() {
+            modalContainer.innerHTML = `<div class="modal fixed inset-0 flex items-center justify-center p-4 show"><div class="modal-content"><h3 class="font-bold text-lg mb-4">บันทึกน้ำหนัก</h3><div class="mb-4"><label class="block text-sm font-medium text-gray-700 mb-1">วันที่</label><input id="modal-weight-date" type="date" class="input-field"></div><div class="mb-4"><label class="block text-sm font-medium text-gray-700 mb-1">น้ำหนัก (kg)</label><input id="modal-weight-input" type="number" step="0.1" class="input-field" placeholder="55.5"></div><div class="flex justify-end space-x-2"><button id="modal-cancel" class="btn-secondary">ยกเลิก</button><button id="modal-save-weight" class="btn-primary px-6">บันทึก</button></div></div></div>`;
+            document.getElementById('modal-weight-date').valueAsDate = new Date();
+            document.getElementById('modal-cancel').onclick = closeModal;
+            document.getElementById('modal-save-weight').onclick = async () => {
+                const weight = parseFloat(document.getElementById('modal-weight-input').value);
+                const selectedDate = document.getElementById('modal-weight-date').value;
+                if (!weight || !selectedDate) return alert("กรุณากรอกข้อมูลให้ครบถ้วน");
+                try {
+                    const date = new Date(selectedDate + 'T00:00:00');
+                    const docId = date.toISOString().split('T')[0];
+                    await setDoc(doc(db, `artifacts/${appId}/users/${userId}/weightEntries`, docId), { weight, date: Timestamp.fromDate(date) });
+                    const profileRef = doc(db, `artifacts/${appId}/users/${userId}/profile`, 'info');
+                    const profileSnap = await getDoc(profileRef);
+                    if (!profileSnap.exists() || !profileSnap.data().startWeight) await setDoc(profileRef, { startWeight: weight }, { merge: true });
+                    closeModal();
+                } catch (error) { console.error("Error saving weight:", error); }
+            };
+        }
+        
+        function showMealModal(type, data) {
+             modalContainer.innerHTML = `<div class="modal fixed inset-0 flex items-center justify-center p-4 show"><div class="modal-content"><h3 class="font-bold text-lg mb-4">บันทึกมื้ออาหาร</h3><div class="mb-4"><label class="block text-sm font-medium text-gray-700 mb-1">รายการอาหาร</label><input id="modal-meal-name" type="text" class="input-field" value="${data?.name || ''}"></div><div class="mb-4"><label class="block text-sm font-medium text-gray-700 mb-1">แคลอรี่ (โดยประมาณ)</label><input id="modal-meal-calories" type="number" class="input-field" value="${data?.calories || ''}"></div><div class="flex justify-end space-x-2"><button id="modal-cancel" class="btn-secondary">ยกเลิก</button><button id="modal-save-meal" class="btn-primary px-6">บันทึก</button></div></div></div>`;
+             document.getElementById('modal-cancel').onclick = closeModal;
+             document.getElementById('modal-save-meal').onclick = async () => {
+                const name = document.getElementById('modal-meal-name').value;
+                const calories = parseInt(document.getElementById('modal-meal-calories').value);
+                if (!name || isNaN(calories)) return;
+                const selectedDateStr = document.getElementById('meal-date-picker').value;
+                const date = new Date(selectedDateStr + 'T12:00:00');
+                const mealRef = data ? doc(db, `artifacts/${appId}/users/${userId}/mealEntries`, data.id) : doc(collection(db, `artifacts/${appId}/users/${userId}/mealEntries`));
+                await setDoc(mealRef, { name, calories, type, date: Timestamp.fromDate(date) });
+                closeModal();
+            };
+        }
+        
+        function showPeriodModal() {
+            modalContainer.innerHTML = `<div class="modal fixed inset-0 flex items-center justify-center p-4 show"><div class="modal-content"><h3 class="font-bold text-lg mb-4">บันทึกรอบเดือน</h3><div class="mb-4"><label class="block text-sm font-medium text-gray-700 mb-1">วันเริ่มมีประจำเดือน</label><input id="modal-period-start" type="date" class="input-field"></div><div class="mb-4"><label class="block text-sm font-medium text-gray-700 mb-1">วันสิ้นสุดประจำเดือน</label><input id="modal-period-end" type="date" class="input-field"></div><div class="flex justify-end space-x-2"><button id="modal-cancel" class="btn-secondary">ยกเลิก</button><button id="modal-save-period" class="btn-primary px-6">บันทึก</button></div></div></div>`;
+            document.getElementById('modal-cancel').onclick = closeModal;
+            document.getElementById('modal-save-period').onclick = async () => {
+                const startDate = document.getElementById('modal-period-start').value;
+                const endDate = document.getElementById('modal-period-end').value;
+                if (!startDate || !endDate) return;
+                await addDoc(collection(db, `artifacts/${appId}/users/${userId}/periodEntries`), { startDate: Timestamp.fromDate(new Date(startDate)), endDate: Timestamp.fromDate(new Date(endDate)) });
+                closeModal();
+            };
+        }
+
+        function showProfileModal(data) {
+            modalContainer.innerHTML = `<div class="modal fixed inset-0 flex items-center justify-center p-4 show"><div class="modal-content"><h3 class="font-bold text-lg mb-4">แก้ไขข้อมูลส่วนตัว</h3><div class="space-y-4"><div><label class="text-sm">ชื่อ</label><input id="modal-profile-name" type="text" class="input-field" value="${data.name || ''}"></div><div><label class="text-sm">อายุ</label><input id="modal-profile-age" type="number" class="input-field" value="${data.age || ''}"></div><div><label class="text-sm">ส่วนสูง (ซม.)</label><input id="modal-profile-height" type="number" class="input-field" value="${data.height || ''}"></div><div><label class="text-sm">น้ำหนักเป้าหมาย (กก.)</label><input id="modal-profile-goal" type="number" step="0.1" class="input-field" value="${data.targetWeight || ''}"></div></div><div class="flex justify-end space-x-2 mt-6"><button id="modal-cancel" class="btn-secondary">ยกเลิก</button><button id="modal-save-profile" class="btn-primary px-6">บันทึก</button></div></div></div>`;
+            document.getElementById('modal-cancel').onclick = closeModal;
+            document.getElementById('modal-save-profile').onclick = async () => {
+                const profileRef = doc(db, `artifacts/${appId}/users/${userId}/profile`, 'info');
+                const profileData = { name: document.getElementById('modal-profile-name').value || 'ผู้ใช้', age: parseInt(document.getElementById('modal-profile-age').value) || null, height: parseInt(document.getElementById('modal-profile-height').value) || null, targetWeight: parseFloat(document.getElementById('modal-profile-goal').value) || null };
+                await setDoc(profileRef, profileData, { merge: true });
+                closeModal();
+            };
+        }
+
+        // --- Initial Load ---
+        setupAuthListeners();
     </script>
 </body>
 </html>
+
